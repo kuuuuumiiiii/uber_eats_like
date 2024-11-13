@@ -1,7 +1,7 @@
 import { restaurantsIndex } from "../urls"
 import axios from 'axios';
 
-export const fetchResturants = () => {
+export const fetchRestaurants = () => {
   return axios.get(restaurantsIndex)
   .then(res => {
     return res.data
