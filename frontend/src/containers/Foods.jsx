@@ -1,14 +1,19 @@
-import React from 'react';
-import { useParams } from 'react-router-dom';
+import React, { Fragment, useEffect } from 'react';
+import { fetchFoods } from '../apis/foods';
 
-export const Foods = () => {
-  // useParamsフックを使用して、URLパラメータを取得
-  const { restaurantsId } = useParams();
+export const Foods = ({
+  match
+}) => {
+  useEffect(() => {
+    fetchFoods(1)
+    .then((data) =>
+      console.log(data)
+    )
+  }, [])
 
   return (
-    <div>
-      <h1>フード一覧</h1>
-      <p>restaurantsIdは {restaurantsId} です</p>
-    </div>
+    <Fragment>
+      フード一覧
+    </Fragment>
   );
 }
