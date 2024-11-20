@@ -7,8 +7,8 @@ import {
 
 import { fetchFoods } from '../apis/foods';
 
-import { REQUEST_STATE } from '../constants';
-import { Link, useParams } from 'react-router-dom';
+import { HTTP_STATUS_CODE, REQUEST_STATE } from '../constants';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import { styled } from 'styled-components'
 
@@ -21,6 +21,8 @@ import Skeleton from '@mui/material/Skeleton';
 import MainLogo from '../images/logo.png';
 import FoodImage from '../images/food-image.jpg';
 import { FoodOrderDialog } from '../components/FoodOrderDialog';
+import { postLineFoods, replaceLineFoods } from '../apis/line_foods';
+import { NewOrderConfirmDialog } from '../components/NewOrderConfirmDialog';
 
 
 
@@ -54,19 +56,20 @@ const ItemWrapper = styled.div`
   margin: 16px;
 `;
 
-const submitOrder = () => {
-  // 後ほど仮注文のAPIを実装します
-  console.log('登録ボタンが押された！')
-}
+
 
 export const Foods = () => {
   const { restaurantsId } = useParams(); // URLパラメータを取得
+  const navigate = useNavigate();
   const [foodsState, dispatch] = useReducer(foodsReducer, foodsInitialState);
 
   const initialState = {
     isOpenOrderDialog: false,
     selectedFood: null,
     selectedFoodCount: 1,
+    isOpenNewOrderDialog: false,
+    existingResutaurautName: '',
+    newResutaurautName: '',
   }
   const [state, setState] = useState(initialState);
 
@@ -83,7 +86,32 @@ export const Foods = () => {
       });
   }, [restaurantsId]); // restaurantsIdを依存配列に追加
 
+  const submitOrder = () => {
+    postLineFoods({
+      foodId: state.selectedFood.id,
+      count: state.selectedFoodCount,
+    }).then(() => navigate('/orders'))
+      .catch((e) => {
+        if (e.response.status === HTTP_STATUS_CODE.NOT_ACCEPTABLE) {
+          setState({
+            ...state,
+            isOpenOrderDialog: false,
+            isOpenNewOrderDialog: true,
+            existingResutaurautName: e.response.data.existing_restaurant,
+            newResutaurautName: e.response.data.new_restaurant,
+          })
+        } else {
+          throw e;
+        }
+      })
+  };
 
+  const replaceOrder = () => {
+    replaceLineFoods({
+      foodId: state.selectedFood.id,
+      count: state.selectedFoodCount,
+    }).then(() => navigate('/orders'))
+  };
 
   return (
     <Fragment>
@@ -150,6 +178,16 @@ export const Foods = () => {
           })}
         />
       }
+      {
+      state.isOpenNewOrderDialog &&
+      <NewOrderConfirmDialog
+        isOpen={state.isOpenNewOrderDialog}
+        onClose={() => setState({ ...state, isOpenNewOrderDialog: false })}
+        existingResutaurautName={state.existingResutaurautName}
+        newResutaurautName={state.newResutaurautName}
+        onClickSubmit={() => replaceOrder()}
+      />
+    }
     </Fragment>
   );
 }
