@@ -4,13 +4,12 @@ module Api
       before_action :set_food, only: %i[create replace]
 
       def index
-        line_food.exists?
         if line_foods.exists?
           render json: {
             line_food_ids: line_foods.map { |line_food| line_food.id },
             restaurant: line_foods[0].restaurant,
-            count: line_foods.sum { |line_food| line_food[:conut] },
-            amount: line_foods.sum { |line_food| line_food.total_amount },
+            count: line_foods.sum { |line_food| line_food[:count] || 0 },
+            amount: line_foods.sum { |line_food| line_food.total_amount || 0 },
           }, status: :ok
         else
           render json: {}, status: :no_content
@@ -54,21 +53,28 @@ module Api
 
       
       private
+
+      def line_foods
+        @line_foods ||= LineFood.active
+      end
       
       def set_food
         @ordered_food = Food.find(params[:food_id])
       end
 
       def set_line_food(ordered_food)
-        if ordered_food.line_food.present?
-          @line_food = ordered_food.line_food
-          @line_food.attributes = {
-            count: ordered_food.line_food.count + params[:count].to_i,
-            active: true
-          }
+        count = params[:count].to_i.presence || 1  # countがnilや空文字の場合は1を設定
+        
+        # 既存のline_foodを取得
+        @line_food = ordered_food.line_food
+      
+        if @line_food.present?
+          # 既存のline_foodがあればcountを更新
+          @line_food.update(count: @line_food.count + count, active: true)
         else
+          # line_foodが存在しなければ新規作成
           @line_food = ordered_food.build_line_food(
-            count: params[:count],
+            count: count,
             restaurant: ordered_food.restaurant,
             active: true
           )
